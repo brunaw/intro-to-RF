@@ -57,7 +57,7 @@ knitr::include_graphics("img/bruna.jpg")
 
 
 
-Link for this presentation:  http://brunaw.com/slides/rladies-dublin/intro-to-rf.html
+Link for this presentation:  http://brunaw.com/slides/rladies-dublin/RF/intro-to-rf.html
 
 ---
 
