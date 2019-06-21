@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Introduction to Random Forests in R</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Bruna Wundervald" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/my-theme.css" type="text/css" />
+    <link rel="stylesheet" href="css/my-fonts.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Introduction to Random Forests in R
+## R-Ladies Dublin Meetup
+### Bruna Wundervald
+### June, 2019
+
+---
+
+
+
+
+class: middle
+
+# Outline
+
+- Introduction
+- Trees
+  - Model
+  - Using in `R`
+- Random Forests
+  - Model 
+  - Using in `R`
+- Resources 
+
+---
+
+class: middle 
+
+.pull-left[
+&lt;img src="img/bruna.jpg" width="70%" style="display: block; margin: auto;" /&gt;
+] .pull-right[
+**Bruna Wundervald**
+- Ph.D. Candidate in Statistics at Maynooth University.
+- Twitter: @bwundervald
+- GitHub: @brunaw
+]
+
+
+
+Link for this presentation:  http://brunaw.com/slides/rladies-dublin/intro-to-rf.html
+
+---
+
+# Introduction
+
+- Goal: predict continous or class variables 
+
+- How?
+  - Using data split into train and test set
+  - Tree-based models to create predictions based on a set
+  of explanatory/predictor variables
+
+
+---
+
+# Pre-requisites
+
+
+.pull-left[
+&lt;img src="img/pipe.png" width="50%" height="30%" style="display: block; margin: auto;" /&gt;
+
+&lt;img src="img/dplyr.png" width="50%" height="30%" style="display: block; margin: auto;" /&gt;
+
+]
+
+.pull-right[
+
+- `%&gt;%`: applies to what is on the right the operations at the left
+- `dplyr`: a set of (very) useful functions for data manipulation 
+- `ggplot2`: graphic tool,s following the [grammar of graphics](https://byrneslab.net/classes/biol607/readings/wickham_layered-grammar.pdf)
+
+&lt;br&gt;
+
+
+
+&lt;img src="img/ggplot2.png" width="50%" height="30%" style="display: block; margin: auto;" /&gt;
+
+
+]
+
+---
+class: inverse, middle, center 
+
+## Trees 🌳 
+
+
+---
+class: middle
+
+# Trees: the model 
+
+&lt;img src="img/trees.png" width="50%" height="30%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Trees: the model
+
+Suppose we have a response variable `\(Y\)` (continuous or class), and
+a set of predictor variables `\(\mathbf{X}\)`. 
+
+- Trees stratify the predictors'space into regions 
+- Uses binary splitting rules to find the regions
+
+.pull-left[
+&lt;img src="img/vars_space.png" width="80%" height="30%" style="display: block; margin: auto;" /&gt;
+]
+.pull-right[
+&lt;img src="img/vars_space2.png" width="80%" height="30%" style="display: block; margin: auto;" /&gt;
+]
+
+Breaks in the predictors'space (Hastie, Tibshirani, and Friedman, 2009)
+
+
+
+---
+
+# Trees: the algorithm
+
+Recursive binary splitting: 
+
+
+  - Select the predictor `\(X_j\)` and the cutpoint `\(s\)` such that 
+the split `\(\{X | X_j &lt;  s\}\)` and `\(\{X | X_j \geq  s\}\)` leads to
+the greatest reduction in the variance of `\(Y\)`. 
+    - All predictors and all available cutpoints are tested
+  
+  - For each region found, predict either the mean of `\(Y\)` in the region
+(continuous case) or the most common class (classification case). 
+
+  - Continue until some criterion is reached
+    - Example: continue until no region contains more than 5 observations
+
+---
+
+# Trees: the algorithm
+
+
+- Continuous response: the goal is to find the tree that minimizes the
+sum of squared errors, or
+
+`$$\sum_{j = 1}^{J} \sum_{i \in R_j} (y_i - \hat y_{R_j})^2,$$`
+
+where `\(R\)` are the `\(J = 1,\dots, R\)` regions found by the tree. 
+
+- Class/factor response: the goal is to find the tree that best
+separates the classes, minimizing the **Gini index**
+
+`$$G = \sum_{k = 1}^{K} \hat p_{jk} ( 1 - \hat p_{jk})$$`
+where `\(K\)` is the total of classes  in the `\(j\)`-th region. 
+
+---
+
+# Trees: advantages
+
+- Very interpretable: close to the human-decision process
+- Can be displayed graphically 
+- Handle well non-linearities **between** the predictors
+
+&lt;img src="img/nonlin.png" width="60%" style="display: block; margin: auto;" /&gt;
+
+
+---
+# Trees: in `R` 
+
+Using`diamonds` data, from the `ggplot2` package, split in **train** and **test** sets;
+
+
+```r
+set.seed(2019)
+data &lt;- diamonds %&gt;% 
+  mutate(set = ifelse(runif(nrow(.)) &gt; 0.75, "test", "train"))
+
+train &lt;- data %&gt;% filter(set == "train") %&gt;% select(-set)
+test &lt;- data %&gt;% filter(set == "test") %&gt;% select(-set)
+glimpse(data)
+```
+
+```
+## Observations: 53,940
+## Variables: 11
+## $ carat   &lt;dbl&gt; 0.23, 0.21, 0.23, 0.29, 0.31, 0.24, 0.24, 0.26, 0.22, 0.…
+## $ cut     &lt;ord&gt; Ideal, Premium, Good, Premium, Good, Very Good, Very Goo…
+## $ color   &lt;ord&gt; E, E, E, I, J, J, I, H, E, H, J, J, F, J, E, E, I, J, J,…
+## $ clarity &lt;ord&gt; SI2, SI1, VS1, VS2, SI2, VVS2, VVS1, SI1, VS2, VS1, SI1,…
+## $ depth   &lt;dbl&gt; 61.5, 59.8, 56.9, 62.4, 63.3, 62.8, 62.3, 61.9, 65.1, 59…
+## $ table   &lt;dbl&gt; 55, 61, 65, 58, 58, 57, 57, 55, 61, 61, 55, 56, 61, 54, …
+## $ price   &lt;int&gt; 326, 326, 327, 334, 335, 336, 336, 337, 337, 338, 339, 3…
+## $ x       &lt;dbl&gt; 3.95, 3.89, 4.05, 4.20, 4.34, 3.94, 3.95, 4.07, 3.87, 4.…
+## $ y       &lt;dbl&gt; 3.98, 3.84, 4.07, 4.23, 4.35, 3.96, 3.98, 4.11, 3.78, 4.…
+## $ z       &lt;dbl&gt; 2.43, 2.31, 2.31, 2.63, 2.75, 2.48, 2.47, 2.53, 2.49, 2.…
+## $ set     &lt;chr&gt; "test", "train", "train", "train", "train", "train", "te…
+```
+
+
+---
+
+**Goal**: predict the price of the diamonds, price in US dollars (\$326--\$18,823)
+
+Variables:
+
+ - `carat`: weight of the diamond (0.2--5.01)
+ - `cut`: quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+ - `color`: diamond colour, from D (best) to J (worst)
+ - `clarity`: a measurement of how clear the diamond is 
+ (I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+ - `x`: length in mm (0--10.74)
+ - `y`: width in mm (0--58.9)
+ - `z`: depth in mm (0--31.8)
+ - `depth`: total depth percentage = z / mean(x, y) = 2 * z / (x + y) (43--79)
+ - `table`: width of top of diamond relative to widest point (43--95)
+
+
+
+---
+
+
+```r
+train %&gt;% 
+  ggplot(aes(price)) +
+  geom_density(fill = "#ff6767", alpha = 0.5) +
+  theme_bw(22)
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-10-1.png" style="display: block; margin: auto;" /&gt;
+
+
+
+---
+# Trees: in `R` 
+
+`rpart` + `rpart.plot` packages!
+
+
+```r
+library(rpart)
+library(rpart.plot)
+
+first_model &lt;- rpart(price ~ cut + color + depth, 
+                     data = train)
+first_model
+```
+
+```
+## n= 40533 
+## 
+## node), split, n, deviance, yval
+##       * denotes terminal node
+## 
+## 1) root 40533 649205500000 3950.496  
+##   2) color=D,E,F,G 28139 389702800000 3556.392 *
+##   3) color=H,I,J 12394 245209600000 4845.259 *
+```
+
+---
+class: middle
+
+# Plotting the tree
+
+
+```r
+rpart.plot(first_model)
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-12-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+
+```r
+# Adding now the carat as a predictor
+second_model &lt;- rpart(price ~ cut + color + depth + carat, 
+                     data = data)
+
+second_model
+```
+
+```
+## n= 53940 
+## 
+## node), split, n, deviance, yval
+##       * denotes terminal node
+## 
+##  1) root 53940 858473100000  3932.800  
+##    2) carat&lt; 0.995 34880  43459420000  1632.641  
+##      4) carat&lt; 0.625 24787   6616641000  1052.009 *
+##      5) carat&gt;=0.625 10093   7963754000  3058.593 *
+##    3) carat&gt;=0.995 19060 292761600000  8142.115  
+##      6) carat&lt; 1.495 12825  60730000000  6139.890 *
+##      7) carat&gt;=1.495 6235  74861710000 12260.560  
+##       14) carat&lt; 1.915 4051  35816530000 10872.790 *
+##       15) carat&gt;=1.915 2184  16771810000 14834.690 *
+```
+
+---
+
+```r
+rpart.plot(second_model)
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-14-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+## Variable importance 
+
+- A measure of "how important" each variable is for the final result
+  - Represents the decrease in the variance/impurity caused by the 
+  addition of a variable to the tree 
+
+
+```r
+first_model$variable.importance/max(first_model$variable.importance)
+```
+
+```
+##       color       depth 
+## 1.00000e+00 8.06842e-05
+```
+
+
+
+```r
+second_model$variable.importance/max(second_model$variable.importance)
+```
+
+```
+##       carat       color       depth         cut 
+## 1.000000000 0.029738668 0.005362746 0.001953665
+```
+
+(Much better seen as a normalized measure!)
+
+- Clearly, the `carat` dominates the tree
+
+---
+
+# Predictions
+
+
+```r
+pred_first &lt;- predict(first_model, test)
+pred_second &lt;- predict(second_model, test)
+
+rmse &lt;- function(x) sqrt(sum((x - test$price)^2))
+
+rmse(pred_first)
+```
+
+```
+## [1] 452219.3
+```
+
+```r
+rmse(pred_second)
+```
+
+```
+## [1] 176905.9
+```
+
+
+Should we disregard the bad tree? **No**!
+
+
+
+---
+
+class: center, middle, inverse
+
+##  🌵🌳🌲🌿  Random Forests 🌴🌲🌵🌳  
+
+---
+
+#  Random Forests
+
+- It's a sum of "tweaked" trees
+  - We grow **B** trees in bootstrap samples of the original data, 
+  and later average their predictions  
+
+- The big difference: at each split, only `\(m \approx \sqrt(p)\)`
+variables are tested
+
+Why? It decorrelates the trees, avoiding that **strong** 
+predictors always appear on top 
+- It creates different trees at each time and all of them
+contribute to the final prediction 
+
+Algorithm: same as for the tree, but with bootstrapped data
+
+&lt;font color = "#ff6767"&gt; The algorithm is very naive, but how naive? &lt;/font&gt;  
+
+---
+class: middle
+
+&lt;font size="45"&gt; Imagine now that you have to buy the fruit trying to pick the one that tastes the better:  🍉 🍊  🍇    &lt;/font&gt;
+
+- A **Bayesian** person would: pick the fruit that he or she likes the most
+(using previous information)
+
+- A **frequentist** person would: ask the seller which one other people
+bought the most 
+
+What the **random forest** 'would do': try all the fruits and decide 
+later. Naturally slower! 
+
+---
+# How to overcome slowness?
+
+  - Use fast programming languages (e.g. `c++`)
+  
+Packages for random forests in `R`, that are actually written in `c++`:
+
+  - `randomForest`: written by the author, Leo Breiman
+  - `ranger`: a faster version of the RF algorithm 
+  
+
+Common arguments: 
+  - `mtry`: number of variables to try at each split
+  - `num.trees`: number of trees to build
+  - `min.node.size`: minimum number of observations in each node
+
+---
+
+# Random forests: in `R`
+
+
+```r
+library(ranger)
+
+# only a tree
+first_rf &lt;- ranger(price ~ cut + color + depth + carat, 
+                   num.trees = 1, mtry = 4, data = train)
+
+first_rf
+```
+
+```
+## Ranger result
+## 
+## Call:
+##  ranger(price ~ cut + color + depth + carat, num.trees = 1, mtry = 4,      data = train) 
+## 
+## Type:                             Regression 
+## Number of trees:                  1 
+## Sample size:                      40533 
+## Number of independent variables:  4 
+## Mtry:                             4 
+## Target node size:                 5 
+## Variable importance mode:         none 
+## Splitrule:                        variance 
+## OOB prediction error (MSE):       2246387 
+## R squared (OOB):                  0.8597508
+```
+
+
+The summary is actually very clear!
+
+---
+
+# Random forests: in `R`
+
+
+
+```r
+# A forest, adding all the variables as predictors
+second_rf &lt;-  ranger(price ~ ., num.trees = 50, data = train,
+                     importance = "impurity")
+
+second_rf
+```
+
+```
+## Ranger result
+## 
+## Call:
+##  ranger(price ~ ., num.trees = 50, data = train, importance = "impurity") 
+## 
+## Type:                             Regression 
+## Number of trees:                  50 
+## Sample size:                      40533 
+## Number of independent variables:  9 
+## Mtry:                             3 
+## Target node size:                 5 
+## Variable importance mode:         impurity 
+## Splitrule:                        variance 
+## OOB prediction error (MSE):       326218.2 
+## R squared (OOB):                  0.9796331
+```
+
+
+---
+
+# Predictions 
+
+
+```r
+pred_rf_first &lt;- predict(first_rf, test)$predictions
+pred_rf_second &lt;- predict(second_rf, test)$predictions
+rmse(pred_rf_first)
+```
+
+```
+## [1] 173929
+```
+
+```r
+rmse(pred_rf_second)
+```
+
+```
+## [1] 64071.71
+```
+
+Much better!
+
+---
+
+## How are the predictions compared to the observed data?
+
+
+```r
+test %&gt;% 
+  mutate(predicted = predict(second_rf, test)$predictions) %&gt;% 
+  ggplot(aes(predicted, price)) +
+  geom_point(colour = "#ff6767", alpha = 0.3) +
+  labs(title = "Predicted and observed") +  theme_bw(18)
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-21-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+## Evaluating importances
+
+
+```r
+imps &lt;- data.frame(var = names(train)[-7],
+                   imps = second_rf$variable.importance/max(second_rf$variable.importance))
+imps %&gt;% 
+  ggplot(aes(imps, x = reorder(var, imps))) +
+  geom_point(size = 3, colour = "#ff6767") +
+  coord_flip() +
+  labs(x = "Predictors", y = "Importance scores") +
+  theme_bw(18) 
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-22-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Careful!
+
+Random forests are highly sensitive to correlated predictors: it 
+splits their importance 
+
+
+```r
+corrplot::corrplot(cor(diamonds %&gt;% select_if(is.numeric), 
+                       method = "spearman"))
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-23-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Variable selection: removing the correlated predictors
+
+
+
+```r
+third_rf &lt;- ranger(price ~ table + depth + carat +
+                     color + clarity + cut, num.trees = 50, 
+                   importance = "impurity", data = train)
+third_rf
+```
+
+```
+## Ranger result
+## 
+## Call:
+##  ranger(price ~ table + depth + carat + color + clarity + cut,      num.trees = 50, importance = "impurity", data = train) 
+## 
+## Type:                             Regression 
+## Number of trees:                  50 
+## Sample size:                      40533 
+## Number of independent variables:  6 
+## Mtry:                             2 
+## Target node size:                 5 
+## Variable importance mode:         impurity 
+## Splitrule:                        variance 
+## OOB prediction error (MSE):       350341.4 
+## R squared (OOB):                  0.9781271
+```
+
+Very similar to the previous model!
+
+
+---
+# Results
+
+
+
+```r
+pred_rf_third &lt;- predict(third_rf, test)$predictions
+rmse(pred_rf_third)
+```
+
+```
+## [1] 65528.43
+```
+
+---
+
+
+```r
+imps &lt;- data.frame(var = third_rf$forest$independent.variable.names,
+                   imps = third_rf$variable.importance/max(third_rf$variable.importance))
+
+
+imps %&gt;% 
+  ggplot(aes(imps, x = reorder(var, imps))) +
+  geom_point(size = 3, colour = "#ff6767") +
+  coord_flip() +
+  labs(x = "Predictors", y = "Importance scores") +
+  theme_bw(18) 
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-26-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+```r
+test %&gt;% 
+  mutate(predicted = predict(third_rf, test)$predictions) %&gt;% 
+  ggplot(aes(predicted, price)) +
+  geom_point(colour = "#ff6767", alpha = 0.3) +
+  labs(title = "Predicted and observed") + 
+  theme_bw(18)
+```
+
+&lt;img src="intro-to-rf_files/figure-html/unnamed-chunk-27-1.png" style="display: block; margin: auto;" /&gt;
+
+
+
+---
+
+# Resources
+
+- [Elements of Statistical Learning](https://web.stanford.edu/~hastie/Papers/ESLII.pdf): open book!
+
+- [`ranger` package](https://github.com/imbs-hl/ranger/)
+
+
+
+
+---
+
+# References 
+
+
+
+
+
+&lt;p&gt;&lt;cite&gt;Breiman, L.
+(2001).
+&amp;ldquo;Random Forests&amp;rdquo;.
+In: &lt;em&gt;Machine Learning&lt;/em&gt;.
+ISSN: 1098-6596.
+DOI: &lt;a href="https://doi.org/10.1017/CBO9781107415324.004"&gt;10.1017/CBO9781107415324.004&lt;/a&gt;.
+eprint: arXiv:1011.1669v3.&lt;/cite&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;cite&gt;&lt;a id='bib-HastieTrevor'&gt;&lt;/a&gt;&lt;a href="#cite-HastieTrevor"&gt;Hastie, T, R. Tibshirani, and J. Friedman&lt;/a&gt;
+(2009).
+&amp;ldquo;The Elements of Statistical Learning&amp;rdquo;.
+In: &lt;em&gt;Elements&lt;/em&gt; 1, pp. 337&amp;ndash;387.
+ISSN: 03436993.
+DOI: &lt;a href="https://doi.org/10.1007/b94608"&gt;10.1007/b94608&lt;/a&gt;.
+eprint: 1010.3003.
+URL: &lt;a href="http://www.springerlink.com/index/10.1007/b94608"&gt;http://www.springerlink.com/index/10.1007/b94608&lt;/a&gt;.&lt;/cite&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;cite&gt;Murphy, K. P.
+(2012).
+&lt;em&gt;Machine learning: a probabilistic perspective&lt;/em&gt;.
+MIT press.&lt;/cite&gt;&lt;/p&gt;
+
+
+---
+
+
+class: bottom, center, inverse
+
+&lt;font size="30"&gt;Thanks! &lt;/font&gt;
+
+&lt;img src= "https://s3.amazonaws.com/kleebtronics-media/img/icons/github-white.png", width="50", height="50",  align="middle"&gt; 
+
+&lt;b&gt;
+
+ &lt;color="FFFFFF"&gt;  https://github.com/brunaw &lt;/color&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://platform.twitter.com/widgets.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
