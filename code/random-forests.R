@@ -1,7 +1,9 @@
 #-----------------------------------------------------------------------
 # Random forests in R
 #-----------------------------------------------------------------------
-library(ranger)
+library(dplyr)
+library(ggplot2)
+library(magrittr)
 library(tidyverse)
 
 set.seed(2019)
