@@ -4,7 +4,7 @@
 library(dplyr)
 library(ggplot2)
 library(magrittr)
-library(tidyverse)
+library(ranger)
 
 set.seed(2019)
 # Selecting the diamonds data
@@ -19,6 +19,9 @@ first_rf <- ranger(price ~ cut + color + depth + carat,
                    num.trees = 1, mtry = 4, data = train)
 
 first_rf
+
+rmse <- function(x) sqrt(sum((x - test$price)^2))
+
 rmse(predict(first_rf, data = test)$predictions)
 
 
