@@ -31,7 +31,7 @@ rpart.plot(first_model)
 
 # Adding now the carat as a predictor
 second_model <- rpart(price ~ cut + color + depth + carat, 
-                     data = data)
+                     data = train)
 
 second_model
 rpart.plot(second_model)

@@ -281,32 +281,35 @@ rpart.plot(first_model)
 ---
 
 
-```r
-# Adding now the carat as a predictor
-second_model &lt;- rpart(price ~ cut + color + depth + carat, 
-                     data = data)
 
+```r
+# Adding now a few more predictors
+
+second_model &lt;- rpart(price ~ cut + color + depth + carat, 
+                     data = train)
 second_model
 ```
 
 ```
-## n= 53940 
+## n= 40533 
 ## 
 ## node), split, n, deviance, yval
 ##       * denotes terminal node
 ## 
-##  1) root 53940 858473100000  3932.800  
-##    2) carat&lt; 0.995 34880  43459420000  1632.641  
-##      4) carat&lt; 0.625 24787   6616641000  1052.009 *
-##      5) carat&gt;=0.625 10093   7963754000  3058.593 *
-##    3) carat&gt;=0.995 19060 292761600000  8142.115  
-##      6) carat&lt; 1.495 12825  60730000000  6139.890 *
-##      7) carat&gt;=1.495 6235  74861710000 12260.560  
-##       14) carat&lt; 1.915 4051  35816530000 10872.790 *
-##       15) carat&gt;=1.915 2184  16771810000 14834.690 *
+##  1) root 40533 649205500000  3950.496  
+##    2) carat&lt; 0.995 26120  32647670000  1635.811  
+##      4) carat&lt; 0.625 18529   4916240000  1051.213 *
+##      5) carat&gt;=0.625 7591   5942264000  3062.765 *
+##    3) carat&gt;=0.995 14413 222997400000  8145.291  
+##      6) carat&lt; 1.495 9747  46499840000  6147.496 *
+##      7) carat&gt;=1.495 4666  56331320000 12318.570  
+##       14) carat&lt; 1.915 3006  26690610000 10896.170 *
+##       15) carat&gt;=1.915 1660  12545830000 14894.300 *
 ```
 
+
 ---
+
 
 ```r
 rpart.plot(second_model)
@@ -341,7 +344,7 @@ second_model$variable.importance/max(second_model$variable.importance)
 
 ```
 ##       carat       color       depth         cut 
-## 1.000000000 0.029738668 0.005362746 0.001953665
+## 1.000000000 0.030817117 0.004239303 0.001158316
 ```
 
 (Much better seen as a normalized measure!)
@@ -371,7 +374,7 @@ rmse(pred_second)
 ```
 
 ```
-## [1] 176905.9
+## [1] 176960.1
 ```
 
 
@@ -479,8 +482,8 @@ first_rf
 ## Target node size:                 5 
 ## Variable importance mode:         none 
 ## Splitrule:                        variance 
-## OOB prediction error (MSE):       2246387 
-## R squared (OOB):                  0.8597508
+## OOB prediction error (MSE):       2236271 
+## R squared (OOB):                  0.8603823
 ```
 
 
@@ -524,8 +527,8 @@ second_rf
 ## Target node size:                 5 
 ## Variable importance mode:         impurity 
 ## Splitrule:                        variance 
-## OOB prediction error (MSE):       326218.2 
-## R squared (OOB):                  0.9796331
+## OOB prediction error (MSE):       330411.3 
+## R squared (OOB):                  0.9793714
 ```
 
 
@@ -541,7 +544,7 @@ rmse(pred_rf_first)
 ```
 
 ```
-## [1] 173929
+## [1] 171772.8
 ```
 
 ```r
@@ -549,7 +552,7 @@ rmse(pred_rf_second)
 ```
 
 ```
-## [1] 64071.71
+## [1] 64745.46
 ```
 
 Much better!
@@ -633,8 +636,8 @@ third_rf
 ## Target node size:                 5 
 ## Variable importance mode:         impurity 
 ## Splitrule:                        variance 
-## OOB prediction error (MSE):       350341.4 
-## R squared (OOB):                  0.9781271
+## OOB prediction error (MSE):       372112.6 
+## R squared (OOB):                  0.9767678
 ```
 
 Very similar to the previous model!
@@ -651,7 +654,7 @@ rmse(pred_rf_third)
 ```
 
 ```
-## [1] 65528.43
+## [1] 67809.49
 ```
 
 ---
