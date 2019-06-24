@@ -91,7 +91,7 @@ knitr::include_graphics("img/dplyr.png")
 
 - `%>%`: applies to what is on the right the operations at the left
 - `dplyr`: a set of (very) useful functions for data manipulation 
-- `ggplot2`: graphic tool,s following the [grammar of graphics](https://byrneslab.net/classes/biol607/readings/wickham_layered-grammar.pdf)
+- `ggplot2`: graphic tools, following the [grammar of graphics](https://byrneslab.net/classes/biol607/readings/wickham_layered-grammar.pdf)
 
 <br>
 
@@ -197,7 +197,8 @@ knitr::include_graphics("img/nonlin.png")
 ---
 # Trees: in `R` 
 
-Using`diamonds` data, from the `ggplot2` package, split in **train** and **test** sets;
+Using the `diamonds` data, from the `ggplot2` package, split in 
+**train** and **test** sets:
 
 ```{r, echo = TRUE}
 set.seed(2019)
@@ -249,7 +250,7 @@ train %>%
 library(rpart)
 library(rpart.plot)
 
-first_model <- rpart(price ~ cut + color + depth, 
+first_model <- rpart(price ~ color, 
                      data = train)
 first_model
 ```
@@ -346,9 +347,27 @@ Algorithm: same as for the tree, but with bootstrapped data
 <font color = "#ff6767"> The algorithm is very naive, but how naive? </font>  
 
 ---
-class: middle
 
-<font size="45"> Imagine now that you have to buy the fruit trying to pick the one that tastes the better:  🍉 🍊  🍇    </font>
+#  Trees and Random Forests
+Trees:
+```{r, echo = FALSE, out.width="25%", eval = TRUE}
+knitr::include_graphics("img/tree.png")
+```
+
+Random Forests:
+```{r, echo = FALSE, out.width="90%", eval = TRUE, out.height="60%"}
+knitr::include_graphics("img/rf.png")
+```
+
+
+
+---
+
+
+
+
+
+<font size='45'> Imagine now that you have to buy the fruit trying to pick the one that tastes the better:  🍉 🍊  🍇    </font>
 
 - A **Bayesian** person would: pick the fruit that he or she likes the most
 (using previous information)
@@ -364,16 +383,17 @@ later. Naturally slower!
 
   - Use fast programming languages (e.g. `c++`)
   
-Packages for random forests in `R`, that are actually written in `c++`:
+Packages for random forests in `R`, that are actually written in
+`c` and `c++`:
 
   - `randomForest`: written by the author, Leo Breiman
   - `ranger`: a faster version of the RF algorithm 
   
 
-Common arguments: 
-  - `mtry`: number of variables to try at each split
-  - `num.trees`: number of trees to build
-  - `min.node.size`: minimum number of observations in each node
+Common arguments in the `ranger()` function: 
+  - `mtry`: number of variables to try at each split (default to m = sqrt(p))
+  - `num.trees`: number of trees to build (default to 500)
+  - `min.node.size`: minimum number of observations in each node (default to 5)
 
 ---
 
@@ -391,6 +411,16 @@ first_rf
 
 
 The summary is actually very clear!
+
+# 'out-of-bag' error
+
+  - The bootstrapped samples used around $\approx 2/3$ of the original
+  observations for each tree
+  - The remaining 1/3 is used to create predictions
+    - Those predictions are averaged for each $i$-th observation 
+    (in the regression case)
+    
+  - The resulting OOB error is a valid estimate of the error of the model
 
 ---
 
@@ -454,8 +484,8 @@ imps %>%
 
 # Careful!
 
-Random forests are highly sensitive to correlated predictors: it 
-splits their importance 
+Random forests are **highly sensitive** to correlated 
+predictors: it splits their importance 
 
 ```{r, echo = TRUE, fig.width=5, fig.height=5}
 corrplot::corrplot(cor(diamonds %>% select_if(is.numeric), 
@@ -525,6 +555,12 @@ test %>%
 
 - [`ranger` package](https://github.com/imbs-hl/ranger/)
 
+- [+ about trees](http://uc-r.github.io/regression_trees)
+
+
+```{r, echo = FALSE, out.width="30%", eval = TRUE}
+knitr::include_graphics("img/esl.png")
+```
 
 
 

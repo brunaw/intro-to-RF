@@ -21,7 +21,7 @@ train %>%
   theme_bw()
 
 # Using some of the variables 
-first_model <- rpart(price ~ cut + color + depth, 
+first_model <- rpart(price ~  color, 
                      data = train)
 
 
